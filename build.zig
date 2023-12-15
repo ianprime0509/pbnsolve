@@ -1,11 +1,12 @@
 const std = @import("std");
-const libxml2 = @import("lib/zig-libxml2/libxml2.zig");
 
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const libxml2_lib = try libxml2.create(b, target, optimize, .{
+    const libxml2 = b.dependency("libxml2", .{
+        .target = target,
+        .optimize = optimize,
         .iconv = false,
         .lzma = false,
         .zlib = false,
@@ -17,8 +18,8 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     exe.linkLibC();
-    libxml2_lib.link(exe);
-    exe.addCSourceFiles(&.{
+    exe.linkLibrary(libxml2.artifact("xml2"));
+    exe.addCSourceFiles(.{ .files = &.{
         "src/bit.c",
         "src/clue.c",
         "src/contradict.c",
@@ -41,6 +42,10 @@ pub fn build(b: *std.Build) !void {
         "src/read_xml.c",
         "src/score.c",
         "src/solve.c",
-    }, &.{});
-    exe.install();
+    }, .flags = &.{
+        "-Wno-comment",
+        "-Wno-implicit-function-declaration",
+        "-Wno-implicit-int",
+    } });
+    b.installArtifact(exe);
 }
